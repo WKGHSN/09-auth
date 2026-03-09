@@ -1,5 +1,5 @@
 import { User } from "@/types/user";
-import { proxy } from "../../app/api/proxy";
+import { nextServer } from "./api";
 import { Note, NoteTag } from "@/types/note";
 
 interface FormValues {
@@ -43,32 +43,32 @@ type FetchNotesParams = {
 
 
 export async function register(data: AuthData) {
-  const response = await proxy.post<User>("/auth/register", data);
+  const response = await nextServer.post<User>("/auth/register", data);
   return response.data;
 }
 
 export async function login(data: AuthData) {
-  const response = await proxy.post<User>("/auth/login", data);
+  const response = await nextServer.post<User>("/auth/login", data);
   return response.data;
 }
 
 export async function checkSession() {
-  const response = await proxy.get<SessionOk>("/auth/session");
+  const response = await nextServer.get<SessionOk>("/auth/session");
   return response.data.success;
 }
 
 export async function checkMe() {
-  const response = await proxy.get<User>("/users/me");
+  const response = await nextServer.get<User>("/users/me");
   return response.data;
 }
 
 export async function logout(): Promise<void> {
-  const response = await proxy.post("/auth/logout");
+  const response = await nextServer.post("/auth/logout");
   return response.data;
 }
 
 export async function updateMe(body: UpdateUser) {
-  const response = await proxy.patch<User>("/users/me", body);
+  const response = await nextServer.patch<User>("/users/me", body);
   return response.data;
 }
 
@@ -80,7 +80,7 @@ export async function fetchNotes({
 }: FetchNotesParams): Promise<FetchNotesResponse> {
   try {
     const perPage = 12;
-    const response = await proxy.get<FetchNotesResponse>("/notes", {
+    const response = await nextServer.get<FetchNotesResponse>("/notes", {
       params: {
         search: search || undefined,
         page,
@@ -89,7 +89,6 @@ export async function fetchNotes({
       },
     });
 
-    
     return {
       ...response.data,
       page,
@@ -101,10 +100,9 @@ export async function fetchNotes({
   }
 }
 
-
 export async function createNote(value: FormValues): Promise<Note> {
   try {
-    const response = await proxy.post<Note>("/notes", value);
+    const response = await nextServer.post<Note>("/notes", value);
     return response.data;
   } catch {
     throw new Error("Create task failed");
@@ -113,7 +111,7 @@ export async function createNote(value: FormValues): Promise<Note> {
 
 export async function deleteNote(noteId: string) {
   try {
-    const response = await proxy.delete<Note>(`/notes/${noteId}`);
+    const response = await nextServer.delete<Note>(`/notes/${noteId}`);
     return response.data;
   } catch {
     throw new Error("Delete task failed");
@@ -122,7 +120,7 @@ export async function deleteNote(noteId: string) {
 
 export async function fetchNoteById(noteId: string) {
   try {
-    const response = await proxy.get<Note>(`/notes/${noteId}`);
+    const response = await nextServer.get<Note>(`/notes/${noteId}`);
     return response.data;
   } catch {
     throw new Error("Could not fetch note details.");
