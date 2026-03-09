@@ -1,5 +1,5 @@
 import { User } from "@/types/user";
-import { proxy } from "./proxy";
+import { proxy } from "../../app/api/proxy";
 import { Note, NoteTag } from "@/types/note";
 
 interface FormValues {
