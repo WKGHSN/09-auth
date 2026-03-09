@@ -1,32 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { api } from '../../api';
-import { cookies } from 'next/headers';
-import { parse } from 'cookie';
 import { isAxiosError } from 'axios';
 import { logErrorResponse } from '../../_utils/utils';
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const apiRes = await api.post('auth/login', body);
 
-    const cookieStore = await cookies();
+    // ---- важливо: слеш на початку ----
+    const apiRes = await api.post('/auth/login', body);
+
     const setCookie = apiRes.headers['set-cookie'];
 
     if (setCookie) {
-      const cookieArray = Array.isArray(setCookie) ? setCookie : [setCookie];
-      for (const cookieStr of cookieArray) {
-        const parsed = parse(cookieStr);
-        const options = {
-          expires: parsed.Expires ? new Date(parsed.Expires) : undefined,
-          path: parsed.Path,
-          maxAge: Number(parsed['Max-Age']),
-        };
-        if (parsed.accessToken) cookieStore.set('accessToken', parsed.accessToken, options);
-        if (parsed.refreshToken) cookieStore.set('refreshToken', parsed.refreshToken, options);
+      const response = NextResponse.json(apiRes.data, { status: apiRes.status });
+
+      if (Array.isArray(setCookie)) {
+        for (const cookieStr of setCookie) {
+          response.headers.append('Set-Cookie', cookieStr);
+        }
+      } else {
+        response.headers.append('Set-Cookie', setCookie);
       }
 
-      return NextResponse.json(apiRes.data, { status: apiRes.status });
+      return response;
     }
 
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -35,7 +32,7 @@ export async function POST(req: NextRequest) {
       logErrorResponse(error.response?.data);
       return NextResponse.json(
         { error: error.message, response: error.response?.data },
-        { status: error.status }
+        { status: error.response?.status || 500 }
       );
     }
     logErrorResponse({ message: (error as Error).message });
