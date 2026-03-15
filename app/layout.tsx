@@ -1,65 +1,53 @@
-import type { Metadata } from "next";
-// import { Geist, Geist_Mono } from "next/font/google";
-import { Roboto } from "next/font/google";
-// import css from "@/globals.css";
-import Footer from "@/components/Footer/Footer";
-import Header from "@/components/Header/Header";
-import TanStackProvider from "@/components/TanStackProvider/TanStackProvider";
-import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
-import AuthProvider from "@/components/AuthProvider/AuthProvider";
+import { Metadata } from 'next';
+import TanStackProvider from '@/components/TanStackProvider/TanStackProvider';
+import AuthProvider from '@/components/AuthProvider/AuthProvider';
+import Header from '@/components/Header/Header';
+import Footer from '@/components/Footer/Footer';
+import './globals.css';
+import { Roboto } from 'next/font/google';
 
-//   variable: "--font-geist-sans",
-//   subsets: ["latin"],
-// });
-
-// const geistMono = Geist_Mono({
-//   variable: "--font-geist-mono",
-//   subsets: ["latin"],
-// });
-
-const geistSans = Roboto({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-  weight: ["400", "700"],
-  display: "swap",
+const roboto = Roboto({
+  subsets: ['latin'],
+  weight: ['400', '700'],
+  variable: '--font-roboto',
+  display: 'swap',
 });
 
 export const metadata: Metadata = {
-  title: "Note Hub",
-  description: "NoteHub - Easy and efficient note-taking app",
+  title: 'NoteHub',
+  description: 'A simple notes application built with Next.js',
   openGraph: {
-    title: "Note Hub",
-    description: "NoteHub - Easy and efficient note-taking app",
-    url: "https://08-zustand-self.vercel.app",
+    title: 'NoteHub',
+    description: 'A simple notes application built with Next.js',
+    url: 'https://08-zustand-drab-kappa.vercel.app',
     images: [
       {
-        url: "https://ac.goit.global/fullstack/react/notehub-og-meta.jpg",
+        url: 'https://ac.goit.global/fullstack/react/notehub-og-meta.jpg',
         width: 1200,
         height: 630,
-        alt: "Note Hub Open Graph Image",
+        alt: 'NoteHub — a simple web-based note-taking application built with Next.js',
       },
     ],
+    type: 'website',
   },
 };
 
 export default function RootLayout({
   children,
   modal,
-}: Readonly<{
+}: {
   children: React.ReactNode;
   modal: React.ReactNode;
-}>) {
+}) {
   return (
     <html lang="en">
-      <body className={`${geistSans.variable}`}>
+      <body className={roboto.variable}>
         <TanStackProvider>
           <AuthProvider>
             <Header />
             {children}
             {modal}
-            <div id="modal-root"></div>
             <Footer />
-            <ReactQueryDevtools initialIsOpen={false} />
           </AuthProvider>
         </TanStackProvider>
       </body>

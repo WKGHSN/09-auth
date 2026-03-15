@@ -1,58 +1,73 @@
-import { cookies } from "next/headers";
-import { NextRequest, NextResponse } from "next/server";
-import { checkSessionServer } from "./lib/api/serverApi";
-import { parse } from "cookie";
-
-const privateRoutes = ["/profile", "/notes"];
-const publicRoutes = ["/sign-in", "/sign-up"];
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+import { cookies } from 'next/headers';
+import { checkSession } from '@/lib/api/serverApi';
 
 export async function proxy(request: NextRequest) {
   const cookieStore = await cookies();
+
+  const accessToken = cookieStore.get('accessToken');
+  const refreshToken = cookieStore.get('refreshToken');
+
   const { pathname } = request.nextUrl;
-  const accessToken = cookieStore.get("accessToken")?.value;
-  const refreshToken = cookieStore.get("refreshToken")?.value;
 
-  const isPublicRoute = publicRoutes.some((route) => pathname.startsWith(route));
-  const isPrivateRoute = privateRoutes.some((route) => pathname.startsWith(route));
+  const isAuthRoute =
+    pathname.startsWith('/sign-in') ||
+    pathname.startsWith('/sign-up');
 
-  // Якщо немає accessToken
-  if (!accessToken) {
-    if (refreshToken) {
-      const res = await checkSessionServer();
-      const resCookie = res?.headers?.["set-cookie"];
+  const isPrivateRoute =
+    pathname.startsWith('/profile') ||
+    pathname.startsWith('/notes');
 
-      if (resCookie) {
-        const response = NextResponse.next();
-        const cookieArray = Array.isArray(resCookie) ? resCookie : [resCookie];
+  const response = NextResponse.next();
 
-        for (const cookieStr of cookieArray) {
-          const parsed = parse(cookieStr);
-          const options = {
-            expires: parsed.Expires ? new Date(parsed.Expires) : undefined,
-            path: parsed.Path,
-            maxAge: parsed["Max-Age"] ? Number(parsed["Max-Age"]) : undefined,
-          };
-          if (parsed.accessToken) response.cookies.set("accessToken", parsed.accessToken, options);
-          if (parsed.refreshToken) response.cookies.set("refreshToken", parsed.refreshToken, options);
+  let isAuthenticated = !!accessToken;
+
+  if (!accessToken && refreshToken) {
+    try {
+      const sessionResponse = await checkSession();
+      const setCookie = sessionResponse.headers['set-cookie'];
+
+      if (setCookie) {
+        const cookiesArray = Array.isArray(setCookie)
+          ? setCookie
+          : [setCookie];
+
+        for (const cookie of cookiesArray) {
+          response.headers.append('Set-Cookie', cookie);
         }
 
-        if (isPublicRoute) return NextResponse.redirect(new URL("/", request.url));
-        if (isPrivateRoute) return response;
+        isAuthenticated = true;
+      }
+    } catch {
+      if (isPrivateRoute) {
+        return NextResponse.redirect(
+          new URL('/sign-in', request.url)
+        );
       }
     }
-
-    if (isPublicRoute) return NextResponse.next();
-    if (isPrivateRoute) return NextResponse.redirect(new URL("/sign-in", request.url));
   }
 
-  // Якщо користувач уже авторизований
-  if (isPublicRoute) return NextResponse.redirect(new URL("/", request.url));
-  if (isPrivateRoute) return NextResponse.next();
+  if (!isAuthenticated && isPrivateRoute) {
+    return NextResponse.redirect(
+      new URL('/sign-in', request.url)
+    );
+  }
 
-  return NextResponse.next();
+  if (isAuthenticated && isAuthRoute) {
+    return NextResponse.redirect(
+      new URL('/', request.url)
+    );
+  }
+
+  return response;
 }
 
-
 export const config = {
-  matcher: ["/profile/:path*", "/notes/:path*", "/sign-in", "/sign-up"],
+  matcher: [
+    '/profile/:path*',
+    '/notes/:path*',
+    '/sign-in',
+    '/sign-up',
+  ],
 };

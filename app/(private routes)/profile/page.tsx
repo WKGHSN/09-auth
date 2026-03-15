@@ -1,29 +1,16 @@
-import css from "./ProfilePage.module.css";
-import Image from "next/image";
-import { Metadata } from "next";
-import Link from "next/link";
-import { checkMeServer } from "@/lib/api/serverApi";
+import Image from 'next/image';
+import Link from 'next/link';
+import { getMe } from '@/lib/api/serverApi';
+import css from './ProfilePage.module.css';
+import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: "NoteHub User Profile",
-  description: "NoteHub - Easy and efficient note-taking app",
-  openGraph: {
-    title: "NoteHub User Profile",
-    description: "NoteHub - Easy and efficient note-taking app",
-    url: "https://08-zustand-self.vercel.app/profile",
-    images: [
-      {
-        url: "https://ac.goit.global/fullstack/react/notehub-og-meta.jpg",
-        width: 1200,
-        height: 630,
-        alt: "Note Hub Open Graph Image",
-      },
-    ],
-  },
+  title: 'Profile',
+  description: 'User profile page',
 };
 
 export default async function ProfilePage() {
-  const user = await checkMeServer();
+  const user = await getMe();
 
   return (
     <main className={css.mainContent}>
@@ -34,6 +21,7 @@ export default async function ProfilePage() {
             Edit Profile
           </Link>
         </div>
+
         <div className={css.avatarWrapper}>
           <Image
             src={user.avatar}
@@ -41,8 +29,10 @@ export default async function ProfilePage() {
             width={120}
             height={120}
             className={css.avatar}
-          ></Image>
+            priority
+          />
         </div>
+
         <div className={css.profileInfo}>
           <p>Username: {user.username}</p>
           <p>Email: {user.email}</p>

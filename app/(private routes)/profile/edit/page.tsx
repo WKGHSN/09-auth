@@ -1,38 +1,44 @@
-"use client";
+'use client';
 
-import css from "./EditProfilePage.module.css";
-import Image from "next/image";
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { useAuthStore } from "@/lib/store/authStore";
-import { checkMe, updateMe } from "@/lib/api/clientApi";
+import Image from 'next/image';
+import { useRouter } from 'next/navigation';
+import { useAuthStore } from '@/lib/store/authStore';
+import { updateMe } from '@/lib/api/clientApi';
+import css from './EditProfilePage.module.css';
+import { useState } from 'react';
+import { AxiosError } from 'axios';
 
-export default function ProfileEditPage() {
-  const [userName, setUserName] = useState("user_name");
+export default function EditProfilePage() {
+  const { user, setUser } = useAuthStore();
   const router = useRouter();
-  const user = useAuthStore((state) => state.user);
-  const setAuth = useAuthStore((state) => state.setAuth);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    checkMe().then((user) => {
-      setUserName(user.username ?? user.email);
-    });
-  }, []);
-
-  function handleNameChange(event: React.ChangeEvent<HTMLInputElement>) {
-    setUserName(event.target.value);
+  if (!user) {
+    return null;
   }
 
-  async function handleSubmit(event: React.FormEvent) {
-    event.preventDefault();
-    const newName = await updateMe({ username: userName });
-    setAuth(newName);
-    router.push("/profile");
-  }
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setError(null);
+    const formData = new FormData(e.currentTarget);
+    const username = formData.get('username') as string;
 
-  function handleCancel() {
-    router.push("/profile");
-  }
+    try {
+      const updatedUser = await updateMe({ username });
+      setUser(updatedUser);
+      router.push('/profile');
+    } catch (err) {
+      if (err instanceof AxiosError && err.response?.data?.message) {
+        setError(err.response.data.message);
+      } else {
+        setError('Update failed');
+      }
+    }
+  };
+
+  const handleCancel = () => {
+    router.push('/profile');
+  };
 
   return (
     <main className={css.mainContent}>
@@ -40,29 +46,28 @@ export default function ProfileEditPage() {
         <h1 className={css.formTitle}>Edit Profile</h1>
 
         <Image
-          src={
-            user?.avatar ||
-            "https://ac.goit.global/fullstack/react/default-avatar.jpg"
-          }
-          alt={"User Avatar"}
+          src={user.avatar}
+          alt="User Avatar"
           width={120}
           height={120}
           className={css.avatar}
+          priority
         />
 
         <form className={css.profileInfo} onSubmit={handleSubmit}>
           <div className={css.usernameWrapper}>
-            <label htmlFor="username">Username: {user?.username}</label>
+            <label htmlFor="username">Username:</label>
             <input
               id="username"
+              name="username"
               type="text"
               className={css.input}
-              value={userName}
-              onChange={handleNameChange}
+              defaultValue={user.username}
+              required
             />
           </div>
 
-          <p>Email: {user?.email}</p>
+          <p>Email: {user.email}</p>
 
           <div className={css.actions}>
             <button type="submit" className={css.saveButton}>
@@ -76,6 +81,7 @@ export default function ProfileEditPage() {
               Cancel
             </button>
           </div>
+          {error && <p className={css.error}>{error}</p>}
         </form>
       </div>
     </main>

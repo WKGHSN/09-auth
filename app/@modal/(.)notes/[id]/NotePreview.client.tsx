@@ -1,54 +1,52 @@
-"use client";
+'use client';
 
-import { useRouter } from "next/navigation";
-import css from "./NotePreview.module.css";
-import Modal from "@/components/Modal/Modal";
-import { useQuery } from "@tanstack/react-query";
-import { fetchNoteById } from "@/lib/api/clientApi";
+import { useQuery } from '@tanstack/react-query';
+import { useRouter, useParams } from 'next/navigation';
+import css from './NotePreview.module.css';
+import { fetchNoteById } from '@/lib/api/clientApi';
+import Modal from '@/components/Modal/Modal';
 
-type Props = {
-  id: string;
-};
-
-export default function NotePreview({ id }: Props) {
+const NotePreviewClient = () => {
+  const { id } = useParams<{ id: string }>();
   const router = useRouter();
-
-  const handleClose = () => {
-    router.back();
-  };
+  const handleClose = () => router.back();
 
   const {
     data: note,
     isLoading,
-    isError,
-    isSuccess,
+    error,
   } = useQuery({
-    queryKey: ["note", id],
+    queryKey: ['note', id],
     queryFn: () => fetchNoteById(id),
     refetchOnMount: false,
   });
 
   if (isLoading) return <p>Loading, please wait...</p>;
-  if (isError || !note) return <p>Something went wrong.</p>;
-  // if (isError) return <p>Something went wrong.</p>;
+  if (error instanceof Error || !note) {
+    return <p>Something went wrong.</p>;
+  }
 
-  if (isSuccess)
-    return (
-      <Modal onClose={handleClose}>
-        <div className={css.container}>
-          <div className={css.item}>
-            <button className={css.closeButn} onClick={handleClose}>
-              &times;
-            </button>
-            <div className={css.header}>
-              <h2>{note.title}</h2>
-            </div>
-            <p className={css.content}>{note.content}</p>
-            <p className={css.date}>
-              {new Date(note.createdAt).toLocaleDateString()}
-            </p>
+  const formattedDate = note.updatedAt
+    ? `Updated at: ${new Date(note.updatedAt).toLocaleDateString()}`
+    : `Created at: ${new Date(note.createdAt).toLocaleDateString()}`;
+
+  return (
+    <Modal onClose={handleClose}>
+      <div className={css.container}>
+        <div className={css.item}>
+          <div className={css.header}>
+            <h2>{note.title}</h2>
+            <p className={css.tag}>{note.tag}</p>
           </div>
+          <p className={css.content}>{note.content}</p>
+          <p className={css.date}>{formattedDate}</p>
         </div>
-      </Modal>
-    );
-}
+        <button type="button" className={css.backBtn} onClick={handleClose}>
+          Back
+        </button>
+      </div>
+    </Modal>
+  );
+};
+
+export default NotePreviewClient;

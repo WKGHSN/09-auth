@@ -1,33 +1,40 @@
-"use client";
+'use client';
 
-import css from "./SignInPage.module.css";
-import { useState } from "react";
-import { login, AuthData } from "@/lib/api/clientApi";
-import { useRouter } from "next/navigation";
-import { useAuthStore } from "@/lib/store/authStore";
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { login } from '@/lib/api/clientApi';
+import { useAuthStore } from '@/lib/store/authStore';
+import css from './SignInPage.module.css';
+import { AxiosError } from 'axios';
 
-export default function SignIpPage() {
+export default function SignInPage() {
   const router = useRouter();
-  const [error, setError] = useState("");
-  const setAuth = useAuthStore((state) => state.setAuth);
+  const setUser = useAuthStore((state) => state.setUser);
+  const [error, setError] = useState<string | null>(null);
 
-  async function handleSubmit(FormData: FormData) {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setError(null);
+    const formData = new FormData(e.currentTarget);
+    const email = formData.get('email') as string;
+    const password = formData.get('password') as string;
+
     try {
-      const data = Object.fromEntries(FormData) as unknown as AuthData;
-      const response = await login(data);
-      if (response) {
-        setAuth(response);
-        router.push("/profile");
+      const user = await login({ email, password });
+      setUser(user);
+      router.push('/profile');
+    } catch (err) {
+      if (err instanceof AxiosError && err.response?.data?.message) {
+        setError(err.response.data.message);
       } else {
-        setError("Invalid email or password");
+        setError('Login failed');
       }
-    } catch {
-      setError("Something went wrong");
     }
-  }
+  };
+
   return (
     <main className={css.mainContent}>
-      <form className={css.form} action={handleSubmit}>
+      <form className={css.form} onSubmit={handleSubmit}>
         <h1 className={css.formTitle}>Sign in</h1>
 
         <div className={css.formGroup}>

@@ -1,104 +1,85 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { fetchNotes } from "@/lib/api/clientApi";
-import { useDebounce } from "use-debounce";
-import type { Note, NoteTag } from "@/types/note";
-import css from "./NotesPage.module.css";
-import NoteList from "@/components/NoteList/NoteList";
-import SearchBox from "@/components/SearchBox/SearchBox";
-import Pagination from "@/components/Pagination/Pagination";
-// import Modal from "@/components/Modal/Modal";
-// import NoteForm from "@/components/NoteForm/NoteForm";
-import Loader from "@/components/Loader/Loader";
-import ErrorMessage from "@/components/ErrorMessage/ErrorMessage";
-import Link from "next/link";
+import css from '@/app/(private routes)/notes/filter/[...slug]/NotesPage.module.css';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useDebounce } from 'use-debounce';
+import { useQuery, keepPreviousData } from '@tanstack/react-query';
+import { fetchNotes } from '@/lib/api/clientApi';
+import SearchBox from '@/components/SearchBox/SearchBox';
+import NoteList from '@/components/NoteList/NoteList';
+import Pagination from '@/components/Pagination/Pagination';
+import type { NoteTag } from '@/types/note';
 
-type FetchNotesResponse = {
-  notes: Note[];
-  // page: number;
-  // perPage: number;
-  totalPages: number;
-  // totalNotes?: number;
-  // tag?: NoteTag;
-};
-
-type Props = {
-  initialData: FetchNotesResponse;
+interface NotesPageClientProps {
   tag?: NoteTag;
-};
+}
 
-export default function NotesClient({ initialData, tag }: Props) {
+const PER_PAGE = 12;
+
+export default function NotesPageClient({ tag }: NotesPageClientProps) {
+  const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
-  const [search, setSearch] = useState("");
 
   const [debouncedSearch] = useDebounce(search, 500);
-  const queryClient = useQueryClient();
 
-  const { data, isPending, isError } = useQuery<FetchNotesResponse>({
-    queryKey: ["notes", page, debouncedSearch, tag],
+  const router = useRouter();
+
+  const { data, isLoading, isError } = useQuery({
+    queryKey: [
+      'notes',
+      { page, perPage: PER_PAGE, tag, search: debouncedSearch },
+    ],
     queryFn: () =>
       fetchNotes({
         page,
-        // perPage: 12,
+        perPage: PER_PAGE,
+        tag,
         search: debouncedSearch,
-        tag: tag,
       }),
-    initialData,
-    placeholderData: initialData,
+    placeholderData: keepPreviousData,
   });
 
-  const handleSearchChange = (newSearch: string) => {
-    setSearch(newSearch);
+  const handleSearchChange = (value: string) => {
+    setSearch(value);
     setPage(1);
   };
 
-  const notes = data?.notes ?? [];
-  const totalPages = data?.totalPages ?? 1;
+  if (isLoading) {
+    return <p>Loading, please wait...</p>;
+  }
+
+  if (isError || !data) {
+    return <p>Something went wrong.</p>;
+  }
 
   return (
     <div className={css.app}>
-      <header className={css.toolbar}>
+      <div className={css.toolbar}>
         <SearchBox value={search} onChange={handleSearchChange} />
-        {totalPages > 1 && (
+
+        {data.totalPages > 1 && (
           <Pagination
-            pageCount={totalPages}
-            currentPage={page}
+            page={page}
+            totalPages={data.totalPages}
             onPageChange={setPage}
           />
         )}
-        {/* <button className={css.button} onClick={() => setIsModalOpen(true)}> */}
-        <Link className={css.button} href="/notes/action/create">
+
+        <button
+          type="button"
+          className={css.button}
+          onClick={() => router.push('/notes/action/create')}
+        >
           Create note +
-        </Link>
-      </header>
+        </button>
+      </div>
 
-      {isError && (
-        <div>
-          <ErrorMessage />
-          <button
-            className={css.button}
-            onClick={() =>
-              queryClient.invalidateQueries({ queryKey: ["notes"] })
-            }
-          >
-            Try again ...
-          </button>
-        </div>
-      )}
-
-      {notes.length === 0 && isPending ? (
-        <Loader />
+      {data.notes.length > 0 ? (
+        <NoteList notes={data.notes} />
       ) : (
-        <NoteList notes={notes} />
+        <p>No notes found.</p>
       )}
-
-      {/* {isModalOpen && (
-        <Modal onClose={() => setIsModalOpen(false)}>
-          <NoteForm onCancel={() => setIsModalOpen(false)} />
-        </Modal>
-      )} */}
     </div>
   );
 }
